@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+}
+
+enum ProductType {
+  PHOTOCARD
+  LIGHTSTICK
+  ALBUM
+  MERCH
+  DOLL
+  OTHER
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  KTOWN_ORDERED
+  KTOWN_CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderSource {
+  LEGACY
+  KTOWN4U
+}
+
+enum PaymentProvider {
+  MERCADOPAGO
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  FAILED
+  CANCELLED
+}
+
+enum PreorderStatus {
+  RESERVED
+  PAID
+  ORDERED
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  role         UserRole  @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+}
+
+model Product {
+  id           String             @id @default(cuid())
+  sourceItemId String?            @unique
+  title        String
+  imageUrl     String?
+  productUrl   String?
+  priceText    String?
+  priceCents   Int                @default(0)
+  type         ProductType
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  images       ProductImage[]
+  variations   ProductVariation[]
+  orderItems   OrderItem[]
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  url       String
+  position  Int      @default(0)
+}
+
+model ProductVariation {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  name      String
+  imageUrl  String?
+  priceCents Int     @default(0)
+}
+
+model ImportBatch {
+  id           String      @id @default(cuid())
+  source       String      @default("acbuy")
+  assignedType ProductType
+  rawJson      Json
+  createdAt    DateTime    @default(now())
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId        String?
+  status        OrderStatus  @default(CREATED)
+  source        OrderSource  @default(LEGACY)
+  totalCents    Int          @default(0)
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  customerDocument String?
+  shippingAddress String?
+  shippingCity    String?
+  shippingState   String?
+  shippingZipCode String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  items         OrderItem[]
+  itemsK4u      OrderItemK4u[]
+  payments      Payment[]
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId  String
+  quantity   Int      @default(1)
+  priceCents Int
+}
+
+model OrderItemK4u {
+  id          String          @id @default(cuid())
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  product     PreorderProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId   String
+  goodsNo     Int
+  productName String
+  variationId String?
+  variationName String?
+  quantity    Int             @default(1)
+  currency    String          @default("USD")
+  priceAmount Decimal         @db.Decimal(10, 2)
+}
+
+model Payment {
+  id          String          @id @default(cuid())
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  provider    PaymentProvider
+  status      PaymentStatus   @default(PENDING)
+  amountCents Int
+  externalId  String?
+  rawPayload  Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PreorderProduct {
+  id                   String            @id @default(uuid())
+  source               String            @default("ktown4u")
+  goodsNo              Int               @unique
+  shopNo               Int
+  grpNo                Int?
+  groupName            String
+  name                 String
+  kind                 String?
+  releaseDate          DateTime
+  sale                 Boolean
+  isAdult              Boolean
+  currency             String            @default("USD")
+  priceAmount          Decimal           @db.Decimal(10, 2)
+  priceOriginalAmount  Decimal?          @db.Decimal(10, 2)
+  imgThumb             String
+  imgT1                String?
+  imgT2                String?
+  categoryPath         String?
+  raw                  Json
+  updatedAt            DateTime          @updatedAt
+  createdAt            DateTime          @default(now())
+  preorders            Preorder[]
+  snapshots            ProductSnapshot[]
+  orderItems           OrderItemK4u[]
+}
+
+model Preorder {
+  id            String         @id @default(uuid())
+  product       PreorderProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productId     String
+  qty           Int
+  customerName  String
+  email         String
+  whatsapp      String?
+  status        PreorderStatus @default(RESERVED)
+  priceLocked   Decimal        @db.Decimal(10, 2)
+  createdAt     DateTime       @default(now())
+}
+
+model ProductSnapshot {
+  id          String          @id @default(uuid())
+  product     PreorderProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   String
+  capturedAt  DateTime        @default(now())
+  priceAmount Decimal         @db.Decimal(10, 2)
+  sale        Boolean
+  raw         Json
+}
+
+model ProductDetail {
+  id            String   @id @default(uuid())
+  goodsNo       Int      @unique
+  productNo     Int?
+  productName   String?
+  productContent String?
+  policy        String?
+  raw           Json
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}

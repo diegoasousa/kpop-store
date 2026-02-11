@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: kpop-store-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kpop
+      POSTGRES_PASSWORD: kpop
+      POSTGRES_DB: kpop_store
+    ports:
+      - "5432:5432"
+    volumes:
+      - kpop_store_pgdata:/var/lib/postgresql/data
+
+volumes:
+  kpop_store_pgdata:

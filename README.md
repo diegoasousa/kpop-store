@@ -1,91 +1,141 @@
 # KpopStore
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Monorepo Nx com apps NestJS (api + admin) e Prisma.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Ambiente
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+Crie `.env` a partir de `.env.example`.
 
-## Generate a library
+Variáveis necessárias:
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
-```
+- `DATABASE_URL="postgresql://kpop:kpop@localhost:5432/kpop_store"`
+- `JWT_SECRET="change-me"`
+- `USD_BRL_RATE="5.50"`
+- `K4U_ITEMINFO_URL_TEMPLATE="https://www.ktown4u.com/_next/data/GumcmMIhzgYORfcm9c7zI/en/iteminfo.json?goods_no={goodsNo}"`
+- `PRODUCT_DETAILS_TTL_HOURS="24"`
+- `MERCADOPAGO_ACCESS_TOKEN="TEST_ACCESS_TOKEN"`
+- `MERCADOPAGO_CURRENCY="BRL"`
+- `PUBLIC_BASE_URL="http://localhost:3000"`
+- `MERCADOPAGO_SUCCESS_URL=""`
+- `MERCADOPAGO_PENDING_URL=""`
+- `MERCADOPAGO_FAILURE_URL=""`
+- `MERCADOPAGO_WEBHOOK_SECRET=""`
+- `MERCADOPAGO_WEBHOOK_STRICT="false"`
+- `MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS="300"`
 
-## Run tasks
+## Banco de Dados
 
-To build the library use:
-
-```sh
-npx nx build pkg1
-```
-
-To run any task with Nx use:
-
-```sh
-npx nx <target> <project-name>
-```
-
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
-
-```
-npx nx release
-```
-
-Pass `--dry-run` to see what would happen without actually releasing the library.
-
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
+Subir Postgres local:
 
 ```sh
-npx nx connect
+docker-compose up -d
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
+Gerar client Prisma:
 
 ```sh
-npx nx g ci-workflow
+npm run prisma:generate
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Rodar migrações:
 
-## Install Nx Console
+```sh
+npm run db:migrate
+```
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+Seed (opcional):
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```sh
+npm run db:seed
+```
 
-## Useful links
+## Ingestão Ktown4u
 
-Learn more:
+Agendamento automático a cada 30 minutos via `@nestjs/schedule`.
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Disparo manual (admin):
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```sh
+curl -X POST http://localhost:3000/admin/ingest/ktown4u \
+  -H "Authorization: Bearer <JWT_ADMIN>"
+```
+
+## Endpoints de Pré-venda
+
+Listar produtos:
+
+```sh
+curl "http://localhost:3000/preorders/products?page=1&size=24&sort=new"
+```
+
+Detalhar produto:
+
+```sh
+curl "http://localhost:3000/preorders/products/12345"
+```
+
+Detalhar produto com descricao (cache):
+
+```sh
+curl "http://localhost:3000/api/products/12345/details"
+```
+
+## Mercado Pago (Checkout)
+
+Criar preferencia (usuario autenticado):
+
+```sh
+curl -X POST "http://localhost:3000/api/payments/mercadopago/preference" \
+  -H "Authorization: Bearer <JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId":"<ORDER_ID>"}'
+```
+
+Criar pedido guest (catalogo Ktown4u):
+
+```sh
+curl -X POST "http://localhost:3000/api/orders/ktown4u" \
+  -H "Content-Type: application/json" \
+  -d '{"items":[{"goodsNo":"155615","quantity":1}],"customerName":"Ana","customerEmail":"ana@email.com","customerPhone":"11999999999","shippingAddress":"Rua X, 123","shippingCity":"São Paulo","shippingState":"SP","shippingZipCode":"01000-000"}'
+```
+
+Webhook (Mercado Pago):
+
+```
+http://localhost:3000/api/webhooks/mercadopago
+```
+
+Webhook signature:
+- Quando `MERCADOPAGO_WEBHOOK_SECRET` estiver definido, o backend valida `x-signature` e `x-request-id` conforme documentação do Mercado Pago.
+- `MERCADOPAGO_WEBHOOK_STRICT=true` força rejeitar webhooks sem assinatura.
+- `MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS` define tolerância do timestamp (anti-replay).
+
+Detalhar produto com `raw`:
+
+```sh
+curl "http://localhost:3000/preorders/products/12345?raw=1"
+```
+
+Reservar:
+
+```sh
+curl -X POST "http://localhost:3000/preorders/products/12345/reserve" \
+  -H "Content-Type: application/json" \
+  -d '{"qty":1,"customerName":"Ana","email":"ana@email.com","whatsapp":"+5511999999999"}'
+```
+
+Admin listagem de reservas:
+
+```sh
+curl "http://localhost:3000/admin/preorders?status=reserved" \
+  -H "Authorization: Bearer <JWT_ADMIN>"
+```
+
+Admin atualizar status:
+
+```sh
+curl -X PATCH "http://localhost:3000/admin/preorders/<ID>/status" \
+  -H "Authorization: Bearer <JWT_ADMIN>" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"paid"}'
+```
