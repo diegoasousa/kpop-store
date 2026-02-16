@@ -84,6 +84,9 @@
     "rxjs": "^7.8.0",
     "serve": "^14.2.4"
   },
+  "overrides": {
+    "@noble/hashes": "1.8.0"
+  },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   }
