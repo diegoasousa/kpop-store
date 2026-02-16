@@ -29,6 +29,31 @@ type Product = {
       <h1>Produtos</h1>
 
       <section class="card">
+        <h2>Cachear Detalhes dos Produtos</h2>
+        <p>Busca e cacheia os detalhes (descrição, política) de todos os produtos do Ktown4u.</p>
+        <div class="actions">
+          <button (click)="cacheAllDetails()" [disabled]="caching">
+            {{ caching ? 'Cacheando...' : 'Cachear Todos os Detalhes' }}
+          </button>
+        </div>
+        <p class="success" *ngIf="cacheResult">
+          ✓ Cacheados: {{ cacheResult.cached }}/{{ cacheResult.total }}
+          <span *ngIf="cacheResult.failed > 0" class="error">
+            ({{ cacheResult.failed }} falharam)
+          </span>
+        </p>
+        <p class="error" *ngIf="cacheError">{{ cacheError }}</p>
+        <div *ngIf="cacheResult && cacheResult.errors && cacheResult.errors.length > 0" class="errors-list">
+          <strong>Erros (primeiros 10):</strong>
+          <ul>
+            <li *ngFor="let err of cacheResult.errors">
+              Produto {{ err.goodsNo }}: {{ err.error }}
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Catalogo Ktown4u (somente leitura)</h2>
         <div class="grid">
           <label>
@@ -105,6 +130,23 @@ type Product = {
       }
       .error {
         color: #c0392b;
+      }
+      .success {
+        color: #27ae60;
+        margin-top: 12px;
+      }
+      .errors-list {
+        margin-top: 12px;
+        padding: 12px;
+        background: #fff5f5;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .errors-list ul {
+        margin: 8px 0 0 20px;
+      }
+      .errors-list li {
+        margin: 4px 0;
       }
       .card {
         background: #fff;
@@ -183,12 +225,24 @@ type Product = {
         border-radius: 6px;
         cursor: pointer;
       }
+      button:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+      }
     `,
   ],
 })
 export class ProductsPage {
   products: Product[] = [];
   error = "";
+  caching = false;
+  cacheError = "";
+  cacheResult: {
+    total: number;
+    cached: number;
+    failed: number;
+    errors: Array<{ goodsNo: number; error: string }>;
+  } | null = null;
   filters = {
     page: 1,
     size: 12,
@@ -214,6 +268,27 @@ export class ProductsPage {
       next: (res) => (this.products = res),
       error: () => {
         this.error = "Falha ao carregar produtos (verifique login e API).";
+      },
+    });
+  }
+
+  cacheAllDetails() {
+    this.caching = true;
+    this.cacheError = "";
+    this.cacheResult = null;
+    this.api.post<{
+      total: number;
+      cached: number;
+      failed: number;
+      errors: Array<{ goodsNo: number; error: string }>;
+    }>("/products/cache-all-details", {}).subscribe({
+      next: (res) => {
+        this.cacheResult = res;
+        this.caching = false;
+      },
+      error: () => {
+        this.cacheError = "Falha ao cachear detalhes dos produtos.";
+        this.caching = false;
       },
     });
   }

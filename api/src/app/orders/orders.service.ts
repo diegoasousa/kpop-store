@@ -106,7 +106,7 @@ export class OrdersService {
 
   async listOrders() {
     return this.prisma.order.findMany({
-      include: { items: true, itemsK4u: true, user: true },
+      include: { items: true, itemsK4u: true, user: true, payments: true },
       orderBy: { createdAt: "desc" },
     });
   }

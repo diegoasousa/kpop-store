@@ -10,10 +10,12 @@ import { UsersModule } from "./users/users.module";
 import { PreordersModule } from "./preorders/preorders.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { PaymentsModule } from "./payments/payments.module";
+import { TranslationModule } from "./translations/translation.module";
 
 @Module({
   imports: [
     PrismaModule,
+    TranslationModule,
     ScheduleModule.forRoot(),
     AuthModule,
     ProductsModule,

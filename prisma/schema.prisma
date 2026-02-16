@@ -176,7 +176,9 @@ model PreorderProduct {
   grpNo                Int?
   groupName            String
   name                 String
+  namePt               String?
   kind                 String?
+  releaseType          String?
   releaseDate          DateTime
   sale                 Boolean
   isAdult              Boolean
@@ -187,12 +189,14 @@ model PreorderProduct {
   imgT1                String?
   imgT2                String?
   categoryPath         String?
+  sortOrder            Int?
   raw                  Json
   updatedAt            DateTime          @updatedAt
   createdAt            DateTime          @default(now())
   preorders            Preorder[]
   snapshots            ProductSnapshot[]
   orderItems           OrderItemK4u[]
+  productDetail        ProductDetail?
 }
 
 model Preorder {
@@ -219,13 +223,16 @@ model ProductSnapshot {
 }
 
 model ProductDetail {
-  id            String   @id @default(uuid())
-  goodsNo       Int      @unique
-  productNo     Int?
-  productName   String?
-  productContent String?
-  policy        String?
-  raw           Json
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
+  id                  String            @id @default(uuid())
+  goodsNo             Int               @unique
+  productNo           Int?
+  productName         String?
+  productContent      String?
+  productContentPt    String?
+  policy              String?
+  policyPt            String?
+  raw                 Json
+  updatedAt           DateTime          @updatedAt
+  createdAt           DateTime          @default(now())
+  product             PreorderProduct   @relation(fields: [goodsNo], references: [goodsNo])
 }

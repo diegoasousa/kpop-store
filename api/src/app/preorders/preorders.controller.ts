@@ -22,7 +22,8 @@ export class PreordersController {
     @Query("size") size?: string,
     @Query("sort") sort?: string,
     @Query("group") group?: string,
-    @Query("kind") kind?: string
+    @Query("kind") kind?: string,
+    @Query("releaseType") releaseType?: string
   ) {
     return this.preordersService.listProducts({
       page: page ? Number.parseInt(page, 10) : undefined,
@@ -30,6 +31,7 @@ export class PreordersController {
       sort,
       group,
       kind,
+      releaseType,
     });
   }
 

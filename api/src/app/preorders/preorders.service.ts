@@ -93,6 +93,7 @@ export class PreordersService {
     sort?: string;
     group?: string;
     kind?: string;
+    releaseType?: string;
   }) {
     const page = params.page && params.page > 0 ? params.page : 1;
     const size = params.size && params.size > 0 ? params.size : 24;
@@ -104,6 +105,9 @@ export class PreordersService {
     }
     if (params.kind) {
       where.kind = { contains: params.kind, mode: "insensitive" };
+    }
+    if (params.releaseType) {
+      where.releaseType = params.releaseType;
     }
 
     let orderBy: Prisma.PreorderProductOrderByWithRelationInput;
