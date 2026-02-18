@@ -29,10 +29,24 @@ export class MercadoPagoService {
     return process.env.MERCADOPAGO_CURRENCY ?? "BRL";
   }
 
-  private usdToBrl(usd: number): number {
-    const envRate = Number.parseFloat(process.env.USD_BRL_RATE ?? "");
-    const rate = Number.isFinite(envRate) ? envRate : 5.5;
-    return usd * rate;
+  private getUsdToBrl(): number {
+    const rate = Number.parseFloat(process.env.USD_TO_BRL ?? process.env.USD_BRL_RATE ?? "");
+    return Number.isFinite(rate) ? rate : 5.5;
+  }
+
+  private getEnvio(): number {
+    const envio = Number.parseFloat(process.env.ENVIO ?? "");
+    return Number.isFinite(envio) ? envio : 0;
+  }
+
+  private computeFinalPriceBrl(amountUsd: number): number {
+    const base = amountUsd * this.getUsdToBrl();
+    const envio = this.getEnvio();
+    const taxa = 0.6 * base + envio;
+    const margem = 0.05 * (base + envio + taxa);
+    const total = base + envio + taxa + margem;
+    const rounded = Math.ceil(total / 5) * 5 - 0.01;
+    return Math.max(0, rounded);
   }
 
   private getWebhookUrl() {
@@ -83,7 +97,7 @@ export class MercadoPagoService {
         ? order.itemsK4u.map((item) => {
             const priceUsd = Number(item.priceAmount);
             const unitPrice =
-              currency === "BRL" ? this.usdToBrl(priceUsd) : priceUsd;
+              currency === "BRL" ? this.computeFinalPriceBrl(priceUsd) : priceUsd;
             return {
               id: String(item.goodsNo),
               title: item.productName,

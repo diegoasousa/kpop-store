@@ -42,10 +42,29 @@ export class OrdersService {
     });
   }
 
-  private usdToBrlCents(usd: number): number {
-    const envRate = Number.parseFloat(process.env.USD_BRL_RATE ?? "");
-    const rate = Number.isFinite(envRate) ? envRate : 5.5;
-    return Math.round(usd * rate * 100);
+  private getUsdToBrl(): number {
+    const rate = Number.parseFloat(process.env.USD_TO_BRL ?? process.env.USD_BRL_RATE ?? "");
+    return Number.isFinite(rate) ? rate : 5.5;
+  }
+
+  private getEnvio(): number {
+    const envio = Number.parseFloat(process.env.ENVIO ?? "");
+    return Number.isFinite(envio) ? envio : 0;
+  }
+
+  private computeFinalPriceBrl(amountUsd: number): number {
+    const base = amountUsd * this.getUsdToBrl();
+    const envio = this.getEnvio();
+    const taxa = 0.6 * base + envio;
+    const margem = 0.05 * (base + envio + taxa);
+    const total = base + envio + taxa + margem;
+    // Round up to next multiple of 5, minus 1 cent
+    const rounded = Math.ceil(total / 5) * 5 - 0.01;
+    return Math.max(0, rounded);
+  }
+
+  private finalPriceBrlCents(amountUsd: number): number {
+    return Math.round(this.computeFinalPriceBrl(amountUsd) * 100);
   }
 
   async createKtown4uOrder(dto: CreateKtown4uOrderDto) {
@@ -81,7 +100,7 @@ export class OrdersService {
 
     const totalCents = orderItems.reduce((sum, item) => {
       const price = Number(item.priceAmount);
-      return sum + this.usdToBrlCents(price) * item.quantity;
+      return sum + this.finalPriceBrlCents(price) * item.quantity;
     }, 0);
 
     const order = await this.prisma.order.create({
