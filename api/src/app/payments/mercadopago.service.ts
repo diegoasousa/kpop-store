@@ -44,7 +44,9 @@ export class MercadoPagoService {
     const envio = this.getEnvio();
     const taxa = 0.6 * base + envio;
     const margem = 0.05 * (base + envio + taxa);
-    const total = base + envio + taxa + margem;
+    const subtotal = base + envio + taxa + margem;
+    // Absorb MercadoPago 5% fee: divide by 0.95 so net received = subtotal
+    const total = subtotal / 0.95;
     const rounded = Math.ceil(total / 5) * 5 - 0.01;
     return Math.max(0, rounded);
   }
