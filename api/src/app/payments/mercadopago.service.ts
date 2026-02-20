@@ -48,10 +48,36 @@ export class MercadoPagoService {
     // 5% margin on (base + taxa)
     const margem = 0.05 * (baseBrl + taxa);
     const subtotal = baseBrl + taxa + margem;
-    // Absorb MercadoPago 5% fee
-    const total = subtotal / 0.95;
+    // Absorb MercadoPago installment fee (4.98% + 14.93% = 19.91%)
+    const total = subtotal / (1 - 0.1991);
     const rounded = Math.ceil(total / 5) * 5 - 0.01;
     return Math.max(0, rounded);
+  }
+
+  private getTransactionAmount(
+    totalCents: number,
+    paymentMethodId?: string,
+    installments?: number,
+  ): number {
+    const installmentPrice = totalCents / 100;
+    const isPixOrDebit = paymentMethodId === 'pix' || paymentMethodId === 'bank_transfer'
+      || paymentMethodId === 'debit_card';
+    const isCreditVista = !isPixOrDebit && (installments ?? 1) <= 1;
+
+    if (isPixOrDebit) {
+      // PIX/debit: derive cost from installment price, apply 0.99% fee
+      const cost = installmentPrice * (1 - 0.1991);
+      return Number((cost / (1 - 0.0099)).toFixed(2));
+    }
+
+    if (isCreditVista) {
+      // Credit card single payment: derive cost, apply 4.98% fee
+      const cost = installmentPrice * (1 - 0.1991);
+      return Number((cost / (1 - 0.0498)).toFixed(2));
+    }
+
+    // Installments: full price (already absorbs 19.91%)
+    return Number(installmentPrice.toFixed(2));
   }
 
   private getWebhookUrl() {
@@ -255,7 +281,11 @@ export class MercadoPagoService {
     });
     const payment = new Payment(client);
 
-    const transactionAmount = Number((order.totalCents / 100).toFixed(2));
+    const transactionAmount = this.getTransactionAmount(
+      order.totalCents,
+      body?.payment_method_id,
+      body?.installments,
+    );
 
     const payload = {
       ...body,
