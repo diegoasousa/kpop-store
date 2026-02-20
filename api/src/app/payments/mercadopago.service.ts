@@ -59,25 +59,27 @@ export class MercadoPagoService {
     paymentMethodId?: string,
     installments?: number,
   ): number {
+    const MP_FEE_INSTALLMENT = 0.1991;
+    const MP_FEE_CREDIT_VISTA = 0.0498;
+    const MP_FEE_PIX = 0.0099;
+
     const installmentPrice = totalCents / 100;
-    const isPixOrDebit = paymentMethodId === 'pix' || paymentMethodId === 'bank_transfer'
-      || paymentMethodId === 'debit_card';
-    const isCreditVista = !isPixOrDebit && (installments ?? 1) <= 1;
 
-    if (isPixOrDebit) {
-      // PIX/debit: derive cost from installment price, apply 0.99% fee
-      const cost = installmentPrice * (1 - 0.1991);
-      return Number((cost / (1 - 0.0099)).toFixed(2));
+    // Installments (2x or more): full price, no discount
+    if ((installments ?? 1) > 1) {
+      return installmentPrice;
     }
 
-    if (isCreditVista) {
-      // Credit card single payment: derive cost, apply 4.98% fee
-      const cost = installmentPrice * (1 - 0.1991);
-      return Number((cost / (1 - 0.0498)).toFixed(2));
+    // Derive real cost (without MP fee)
+    const cost = installmentPrice * (1 - MP_FEE_INSTALLMENT);
+
+    // PIX: absorb only 0.99%
+    if (paymentMethodId === 'pix') {
+      return Math.round(cost / (1 - MP_FEE_PIX) * 100) / 100;
     }
 
-    // Installments: full price (already absorbs 19.91%)
-    return Number(installmentPrice.toFixed(2));
+    // Credit card single payment (1x): absorb only 4.98%
+    return Math.round(cost / (1 - MP_FEE_CREDIT_VISTA) * 100) / 100;
   }
 
   private getWebhookUrl() {
