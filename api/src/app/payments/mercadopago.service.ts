@@ -73,8 +73,8 @@ export class MercadoPagoService {
     // Derive real cost (without MP fee)
     const cost = installmentPrice * (1 - MP_FEE_INSTALLMENT);
 
-    // PIX: absorb only 0.99%
-    if (paymentMethodId === 'pix') {
+    // PIX or Boleto: absorb only 0.99%
+    if (paymentMethodId === 'pix' || paymentMethodId === 'bolbradesco') {
       return Math.round(cost / (1 - MP_FEE_PIX) * 100) / 100;
     }
 
