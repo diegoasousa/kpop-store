@@ -40,12 +40,15 @@ export class MercadoPagoService {
   }
 
   private computeFinalPriceBrl(amountUsd: number): number {
-    const base = amountUsd * this.getUsdToBrl();
-    const envio = this.getEnvio();
-    const taxa = 0.6 * base + envio;
-    const margem = 0.05 * (base + envio + taxa);
-    const subtotal = base + envio + taxa + margem;
-    // Absorb MercadoPago 5% fee: divide by 0.95 so net received = subtotal
+    const envioUsd = this.getEnvio();
+    // Convert product + shipping (both USD) to BRL
+    const baseBrl = (amountUsd + envioUsd) * this.getUsdToBrl();
+    // 60% import tax on BRL value
+    const taxa = 0.6 * baseBrl;
+    // 5% margin on (base + taxa)
+    const margem = 0.05 * (baseBrl + taxa);
+    const subtotal = baseBrl + taxa + margem;
+    // Absorb MercadoPago 5% fee
     const total = subtotal / 0.95;
     const rounded = Math.ceil(total / 5) * 5 - 0.01;
     return Math.max(0, rounded);
